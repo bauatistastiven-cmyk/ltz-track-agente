@@ -79,10 +79,14 @@ async def receive_message(request: Request):
     texto = mensaje["texto"]
     logger.info(f"Mensaje de {numero}: {texto[:80]}")
 
-    # Si el bot está pausado para este cliente, no responder
+    # Si el bot está pausado, solo reactivar si dice "hola"
     if await memory.bot_esta_pausado(numero):
-        logger.info(f"Bot pausado para {numero} — mensaje ignorado")
-        return JSONResponse({"status": "paused"})
+        if "hola" in texto.lower():
+            await memory.reactivar_bot(numero)
+            logger.info(f"Bot reactivado para {numero} por nuevo saludo")
+        else:
+            logger.info(f"Bot pausado para {numero} — mensaje ignorado")
+            return JSONResponse({"status": "paused"})
 
     # Obtener historial
     historial = await memory.get_history(numero)
@@ -94,8 +98,19 @@ async def receive_message(request: Request):
     quiere_comprar = any(p in texto_lower for p in ["quiero comprar", "me interesa", "quiero adquirir", "como compro", "quiero el gps", "lo quiero", "me lo llevo", "como pago", "quiero pagar", "datos de pago", "numero de cuenta", "donde pago", "transferencia"])
     quiere_pagar = any(p in texto_lower for p in ["como pago", "quiero pagar", "datos de pago", "numero de cuenta", "donde pago", "transferencia", "cuenta bancaria", "deposito"])
 
+    # Determinar modo según si el trato fue cerrado
+    cerrado = await memory.trato_cerrado(numero)
+    if cerrado:
+        modo = "soporte"
+    elif "hola" in texto_lower and not historial:
+        modo = "ventas"
+    elif "hola" in texto_lower and historial:
+        modo = "retoma" if not cerrado else "soporte"
+    else:
+        modo = "ventas"
+
     # Generar respuesta
-    respuesta = await brain.responder(texto, historial)
+    respuesta = await brain.responder(texto, historial, modo=modo)
 
     # Notificar al admin si pidió descuento
     if pide_descuento:

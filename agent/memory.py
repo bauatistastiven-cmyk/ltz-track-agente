@@ -146,6 +146,11 @@ class Memory:
         await self._db.commit()
         logger.info(f"Bot reactivado para {numero}")
 
+    async def trato_cerrado(self, numero: str) -> bool:
+        """Retorna True si el trato fue cerrado (etapa avanzada)."""
+        etapa = await self.get_etapa(numero)
+        return etapa in ("Instalación agendada", "Cliente activo")
+
     async def close(self):
         if self._db:
             await self._db.close()

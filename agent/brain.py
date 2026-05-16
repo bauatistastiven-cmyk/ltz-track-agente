@@ -93,9 +93,49 @@ class Brain:
         self.system_prompt = _load_system_prompt()
         logger.info(f"Brain inicializado con modelo {self.model}")
 
-    async def responder(self, mensaje: str, historial: list[dict]) -> str:
+    def _prompt_soporte(self) -> str:
+        """System prompt para clientes que ya compraron — modo soporte."""
+        return self.system_prompt + """
+
+MODO ACTUAL: SOPORTE AL CLIENTE
+Este cliente ya adquirio el servicio GPS de LTZ Track. Su trato fue cerrado.
+Tu rol ahora es brindarle soporte tecnico y atencion postventa.
+
+COMPORTAMIENTO EN MODO SOPORTE:
+- Saluda de forma calida reconociendo que ya es cliente.
+- Ayudalo con cualquier duda sobre el uso del GPS, la plataforma o la app.
+- Si tiene un problema tecnico, guialo paso a paso.
+- Si necesita algo que no puedes resolver, ofrece conectarlo con un tecnico.
+- No intentes venderle nada nuevo, ya es cliente activo.
+"""
+
+    def _prompt_ventas_retoma(self) -> str:
+        """System prompt para clientes que no cerraron — modo persuasion."""
+        return self.system_prompt + """
+
+MODO ACTUAL: RETOMA DE VENTA
+Este cliente tuvo una conversacion anterior pero no cerro el trato.
+Tu objetivo es retomar la conversacion y persuadirlo para cerrar la venta ahora.
+
+COMPORTAMIENTO EN MODO RETOMA:
+- Saluda con energia y menciona que es un gusto volver a saber de el.
+- Recuerda brevemente el valor del servicio sin repetir todo desde cero.
+- Usa urgencia: "Tenemos pocos cupos disponibles esta semana."
+- Ofrece agendar directamente: "Te aparto la instalacion ahora mismo."
+- Si pide descuento, consulta con supervisor como siempre.
+- Meta: cerrar en esta conversacion, no dejar para despues.
+"""
+
+    async def responder(self, mensaje: str, historial: list[dict], modo: str = "ventas") -> str:
         try:
-            messages = [{"role": "system", "content": self.system_prompt}]
+            if modo == "soporte":
+                system = self._prompt_soporte()
+            elif modo == "retoma":
+                system = self._prompt_ventas_retoma()
+            else:
+                system = self.system_prompt
+
+            messages = [{"role": "system", "content": system}]
             for msg in historial:
                 messages.append({"role": msg["role"], "content": msg["content"]})
             messages.append({"role": "user", "content": mensaje})
