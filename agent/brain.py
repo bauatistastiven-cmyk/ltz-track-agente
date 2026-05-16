@@ -13,6 +13,14 @@ logger = logging.getLogger("agentkit.brain")
 KNOWLEDGE_DIR = Path("knowledge")
 CONFIG_DIR = Path("config")
 
+ETAPAS = [
+    "Nuevo contacto",
+    "En cotización",
+    "Pago pendiente",
+    "Instalación agendada",
+    "Cliente activo",
+]
+
 
 def _load_knowledge() -> str:
     textos = []
@@ -102,3 +110,40 @@ class Brain:
         except Exception as e:
             logger.error(f"Error en Brain: {e}")
             return "Lo siento, tuve un problema tecnico. Intenta de nuevo en un momento."
+
+    async def clasificar_etapa(self, historial: list[dict], mensaje_actual: str) -> str:
+        """Analiza la conversación y determina en qué etapa está el cliente."""
+        resumen = "\n".join(
+            f"{m['role'].upper()}: {m['content']}" for m in historial[-6:]
+        )
+        resumen += f"\nUSER: {mensaje_actual}"
+
+        prompt = f"""Analiza esta conversacion de WhatsApp y determina en que etapa del proceso de venta esta el cliente.
+
+Conversacion:
+{resumen}
+
+Elige UNA de estas etapas (responde SOLO el nombre exacto, sin explicacion):
+- Nuevo contacto (apenas inicia contacto, saluda o pregunta info general)
+- En cotizacion (pregunta precio, caracteristicas, compara opciones)
+- Pago pendiente (acepto el servicio, quiere pagar o esta en proceso de pago)
+- Instalacion agendada (ya pago o confirmo cita de instalacion)
+- Cliente activo (ya tiene el GPS instalado, pregunta sobre uso o soporte)
+
+Etapa:"""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=20,
+            )
+            etapa = response.choices[0].message.content.strip()
+            # Validar que sea una etapa válida
+            for e in ETAPAS:
+                if e.lower() in etapa.lower():
+                    return e
+            return "Nuevo contacto"
+        except Exception as e:
+            logger.error(f"Error clasificando etapa: {e}")
+            return "Nuevo contacto"
