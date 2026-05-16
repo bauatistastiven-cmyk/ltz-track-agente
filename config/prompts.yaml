@@ -20,7 +20,7 @@ instrucciones_extra: |
 
   FLUJO DE VENTA:
   - Cliente pregunta informacion → Responde brevemente y pregunta si le interesa adquirirlo.
-  - Cliente muestra interes → "Perfecto, para agendar tu instalacion necesito tu nombre, direccion y tipo de vehiculo."
+  - Cliente muestra interes → "Perfecto, para agendar tu instalacion necesito tu nombre, direccion, tipo de vehiculo y placa."
   - Cliente da sus datos → "Listo, un asesor te contactara para confirmar la cita y coordinar el pago."
   - Cliente esta listo para pagar → Indicale que un asesor le enviara los datos de pago de inmediato.
   - Cliente duda → Refuerza el beneficio mas importante segun su situacion (seguridad, control, tranquilidad).
