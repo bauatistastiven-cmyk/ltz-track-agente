@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from agent.brain import Brain
 from agent.memory import Memory
 from agent.providers import get_provider
-from agent.notificaciones import notificar_cambio_etapa, notificar_descuento
+from agent.notificaciones import notificar_cambio_etapa, notificar_descuento, notificar_interes_compra, enviar_plantilla_pago
 
 logging.basicConfig(
     level=logging.INFO,
@@ -82,9 +82,12 @@ async def receive_message(request: Request):
     # Obtener historial
     historial = await memory.get_history(numero)
 
-    # Detectar si el cliente pide descuento
-    palabras_descuento = ["descuento", "rebaja", "precio", "mas barato", "oferta", "promocion", "negociar", "menos"]
-    pide_descuento = any(p in texto.lower() for p in palabras_descuento)
+    texto_lower = texto.lower()
+
+    # Detectar intenciones del cliente
+    pide_descuento = any(p in texto_lower for p in ["descuento", "rebaja", "mas barato", "oferta", "promocion", "negociar"])
+    quiere_comprar = any(p in texto_lower for p in ["quiero comprar", "me interesa", "quiero adquirir", "como compro", "quiero el gps", "lo quiero", "me lo llevo", "como pago", "quiero pagar", "datos de pago", "numero de cuenta", "donde pago", "transferencia"])
+    quiere_pagar = any(p in texto_lower for p in ["como pago", "quiero pagar", "datos de pago", "numero de cuenta", "donde pago", "transferencia", "cuenta bancaria", "deposito"])
 
     # Generar respuesta
     respuesta = await brain.responder(texto, historial)
@@ -92,6 +95,14 @@ async def receive_message(request: Request):
     # Notificar al admin si pidió descuento
     if pide_descuento:
         await notificar_descuento(numero)
+
+    # Notificar al admin si el cliente quiere comprar
+    if quiere_comprar:
+        await notificar_interes_compra(numero)
+
+    # Enviar plantilla de pago si el cliente pregunta cómo pagar
+    if quiere_pagar:
+        await enviar_plantilla_pago(numero)
 
     # Clasificar etapa del cliente
     etapa_nueva = await brain.clasificar_etapa(historial, texto)
