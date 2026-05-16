@@ -16,6 +16,9 @@ def get_provider() -> WhatsAppProvider:
     if proveedor == "whapi":
         from agent.providers.whapi import WhapiProvider
         return WhapiProvider()
+    elif proveedor == "evolution":
+        from agent.providers.evolution import EvolutionProvider
+        return EvolutionProvider()
     elif proveedor == "meta":
         from agent.providers.meta import MetaProvider
         return MetaProvider()
@@ -25,5 +28,5 @@ def get_provider() -> WhatsAppProvider:
     else:
         raise ValueError(
             f"Proveedor desconocido: '{proveedor}'. "
-            f"Opciones válidas: 'whapi', 'meta', 'twilio'"
+            f"Opciones válidas: 'whapi', 'evolution', 'meta', 'twilio'"
         )
