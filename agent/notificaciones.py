@@ -98,6 +98,17 @@ Una vez realizado el pago, envianos el comprobante por este mismo chat y un ases
 Gracias por confiar en LTZ Track."""
 
 
+async def notificar_pase_a_humano(numero_cliente: str):
+    """Notifica al admin que debe tomar el control del chat."""
+    mensaje = (
+        f"LTZ Track - Cliente listo para cerrar\n\n"
+        f"El cliente {numero_cliente} esta listo para hablar con un representante.\n"
+        f"El bot ha sido pausado. Tu tomas el control de este chat."
+    )
+    await _enviar_al_admin(mensaje)
+    logger.info(f"Notificacion de pase a humano enviada para cliente {numero_cliente}")
+
+
 async def enviar_plantilla_pago(numero_cliente: str):
     """Envia la plantilla de pago directamente al cliente."""
     if not WHAPI_TOKEN:

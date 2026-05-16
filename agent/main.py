@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from agent.brain import Brain
 from agent.memory import Memory
 from agent.providers import get_provider
-from agent.notificaciones import notificar_cambio_etapa, notificar_descuento, notificar_interes_compra, enviar_plantilla_pago
+from agent.notificaciones import notificar_cambio_etapa, notificar_descuento, notificar_interes_compra, enviar_plantilla_pago, notificar_pase_a_humano
 
 logging.basicConfig(
     level=logging.INFO,
@@ -79,6 +79,11 @@ async def receive_message(request: Request):
     texto = mensaje["texto"]
     logger.info(f"Mensaje de {numero}: {texto[:80]}")
 
+    # Si el bot está pausado para este cliente, no responder
+    if await memory.bot_esta_pausado(numero):
+        logger.info(f"Bot pausado para {numero} — mensaje ignorado")
+        return JSONResponse({"status": "paused"})
+
     # Obtener historial
     historial = await memory.get_history(numero)
 
@@ -103,6 +108,11 @@ async def receive_message(request: Request):
     # Enviar plantilla de pago si el cliente pregunta cómo pagar
     if quiere_pagar:
         await enviar_plantilla_pago(numero)
+
+    # Pausar bot si se menciona "representante" en el mensaje del cliente o en la respuesta del bot
+    if "representante" in texto_lower or "representante" in respuesta.lower():
+        await memory.pausar_bot(numero)
+        await notificar_pase_a_humano(numero)
 
     # Clasificar etapa del cliente
     etapa_nueva = await brain.clasificar_etapa(historial, texto)

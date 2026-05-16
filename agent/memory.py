@@ -44,6 +44,7 @@ class Memory:
                 numero      TEXT PRIMARY KEY,
                 etapa       TEXT NOT NULL DEFAULT 'Nuevo contacto',
                 nombre      TEXT,
+                bot_pausado INTEGER NOT NULL DEFAULT 0,
                 updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -114,6 +115,36 @@ class Memory:
             "total_usuarios": row[0],
             "total_mensajes": row[1],
         }
+
+    async def bot_esta_pausado(self, numero: str) -> bool:
+        """Verifica si el bot está pausado para este número."""
+        async with self._db.execute(
+            "SELECT bot_pausado FROM clientes WHERE numero = ?", (numero,)
+        ) as cursor:
+            row = await cursor.fetchone()
+        return bool(row[0]) if row else False
+
+    async def pausar_bot(self, numero: str):
+        """Pausa el bot para este número — un humano tomará el control."""
+        await self._db.execute(
+            """
+            INSERT INTO clientes (numero, etapa, bot_pausado, updated_at)
+            VALUES (?, 'Instalación agendada', 1, CURRENT_TIMESTAMP)
+            ON CONFLICT(numero) DO UPDATE SET bot_pausado=1, updated_at=CURRENT_TIMESTAMP
+            """,
+            (numero,),
+        )
+        await self._db.commit()
+        logger.info(f"Bot pausado para {numero} — control pasado a humano")
+
+    async def reactivar_bot(self, numero: str):
+        """Reactiva el bot para este número."""
+        await self._db.execute(
+            "UPDATE clientes SET bot_pausado=0, updated_at=CURRENT_TIMESTAMP WHERE numero=?",
+            (numero,),
+        )
+        await self._db.commit()
+        logger.info(f"Bot reactivado para {numero}")
 
     async def close(self):
         if self._db:
