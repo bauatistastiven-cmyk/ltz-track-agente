@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from agent.brain import Brain
 from agent.memory import Memory
 from agent.providers import get_provider
-from agent.notificaciones import notificar_cambio_etapa
+from agent.notificaciones import notificar_cambio_etapa, notificar_descuento
 
 logging.basicConfig(
     level=logging.INFO,
@@ -82,8 +82,16 @@ async def receive_message(request: Request):
     # Obtener historial
     historial = await memory.get_history(numero)
 
+    # Detectar si el cliente pide descuento
+    palabras_descuento = ["descuento", "rebaja", "precio", "mas barato", "oferta", "promocion", "negociar", "menos"]
+    pide_descuento = any(p in texto.lower() for p in palabras_descuento)
+
     # Generar respuesta
     respuesta = await brain.responder(texto, historial)
+
+    # Notificar al admin si pidió descuento
+    if pide_descuento:
+        await notificar_descuento(numero)
 
     # Clasificar etapa del cliente
     etapa_nueva = await brain.clasificar_etapa(historial, texto)
