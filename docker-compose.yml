@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  agent:
+    build: .
+    container_name: whatsapp-agent
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - .env
+    volumes:
+      # Persistir la base de datos SQLite fuera del contenedor
+      - agent_data:/data
+      # Montar knowledge en vivo (útil durante desarrollo)
+      - ./knowledge:/app/knowledge:ro
+      - ./config:/app/config:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  agent_data:
+    driver: local
