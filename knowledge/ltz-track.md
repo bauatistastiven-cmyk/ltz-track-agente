@@ -8,7 +8,7 @@ Brindamos soluciones de rastreo para personas y empresas que desean control tota
 
 | Concepto | Detalle |
 |---|---|
-| **Precio** | $5,000 MXN |
+| **Precio** | $5,000 RD$ |
 | **Plan** | Anual (se renueva cada año) |
 | **Incluye** | Instalación + plataforma de rastreo + soporte |
 
@@ -35,7 +35,7 @@ Todos los días de **7:00 AM a 10:00 PM**
 ## Preguntas Frecuentes
 
 **¿Cuánto cuesta?**
-La instalación tiene un costo de $5,000 MXN con plan anual.
+La instalación tiene un costo de $5,000 RD$ con plan anual.
 
 **¿Qué incluye el plan anual?**
 Incluye el dispositivo GPS, la instalación, acceso a la plataforma de rastreo y soporte técnico.
