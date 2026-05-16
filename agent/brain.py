@@ -118,17 +118,25 @@ class Brain:
         )
         resumen += f"\nUSER: {mensaje_actual}"
 
-        prompt = f"""Analiza esta conversacion de WhatsApp y determina en que etapa del proceso de venta esta el cliente.
+        prompt = f"""Analiza esta conversacion de WhatsApp sobre venta de GPS vehicular y determina la etapa MAS AVANZADA que ha alcanzado el cliente.
 
 Conversacion:
 {resumen}
 
-Elige UNA de estas etapas (responde SOLO el nombre exacto, sin explicacion):
-- Nuevo contacto (apenas inicia contacto, saluda o pregunta info general)
-- En cotizacion (pregunta precio, caracteristicas, compara opciones)
-- Pago pendiente (acepto el servicio, quiere pagar o esta en proceso de pago)
-- Instalacion agendada (ya pago o confirmo cita de instalacion)
-- Cliente activo (ya tiene el GPS instalado, pregunta sobre uso o soporte)
+REGLAS IMPORTANTES:
+- Solo sube de etapa si hay evidencia CLARA Y DIRECTA en la conversacion
+- Si el cliente solo pregunta precios o caracteristicas = "En cotizacion"
+- Si el cliente dice explicitamente que quiere comprar o preguntar como pagar = "Pago pendiente"
+- Si el cliente confirmo fecha de instalacion o ya pago = "Instalacion agendada"
+- Si menciona que ya tiene el GPS instalado o pregunta como usarlo = "Cliente activo"
+- Si hay duda, mantener la etapa mas conservadora
+
+Elige UNA (responde SOLO el nombre exacto):
+- Nuevo contacto
+- En cotizacion
+- Pago pendiente
+- Instalacion agendada
+- Cliente activo
 
 Etapa:"""
 

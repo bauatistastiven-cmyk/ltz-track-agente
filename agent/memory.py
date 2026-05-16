@@ -78,10 +78,17 @@ class Memory:
         return row[0] if row else "Nuevo contacto"
 
     async def set_etapa(self, numero: str, etapa: str) -> bool:
-        """Actualiza la etapa del cliente. Retorna True si cambió."""
+        """Actualiza la etapa del cliente solo si avanza. Retorna True si cambió."""
         etapa_actual = await self.get_etapa(numero)
         if etapa_actual == etapa:
             return False
+
+        # Solo avanzar, nunca retroceder
+        indice_actual = ETAPAS.index(etapa_actual) if etapa_actual in ETAPAS else 0
+        indice_nuevo = ETAPAS.index(etapa) if etapa in ETAPAS else 0
+        if indice_nuevo <= indice_actual:
+            return False
+
         await self._db.execute(
             """
             INSERT INTO clientes (numero, etapa, updated_at)
