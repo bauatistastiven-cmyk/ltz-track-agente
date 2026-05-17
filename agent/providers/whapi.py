@@ -55,8 +55,12 @@ class WhapiProvider(WhatsAppProvider):
 
         msg = mensajes[0]
 
-        # Ignorar mensajes enviados por el propio bot
+        # Si el mensaje es del propietario (from_me=true), marcarlo para pausar el bot
         if msg.get("from_me"):
+            numero_raw = msg.get("chat_id", "") or msg.get("to", "")
+            numero = numero_raw.split("@")[0]
+            if numero:
+                return {"numero": numero, "texto": "", "es_propietario": True}
             return None
 
         # Solo procesar mensajes de texto

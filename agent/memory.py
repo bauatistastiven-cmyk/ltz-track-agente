@@ -4,6 +4,7 @@ Generado por AgentKit
 """
 import os
 import logging
+import time
 from datetime import datetime
 import aiosqlite
 
@@ -24,6 +25,7 @@ ETAPAS = [
 class Memory:
     def __init__(self):
         self._db: aiosqlite.Connection | None = None
+        self._bot_envios: dict[str, float] = {}  # numero -> timestamp ultimo envio del bot
 
     async def init(self):
         self._db = await aiosqlite.connect(DB_PATH)
@@ -145,6 +147,15 @@ class Memory:
         )
         await self._db.commit()
         logger.info(f"Bot reactivado para {numero}")
+
+    def registrar_envio_bot(self, numero: str):
+        """Registra que el bot acaba de enviar un mensaje a este número."""
+        self._bot_envios[numero] = time.time()
+
+    def fue_envio_del_bot(self, numero: str, ventana_segundos: int = 15) -> bool:
+        """Retorna True si el bot envió un mensaje a este número en los últimos N segundos."""
+        ultimo = self._bot_envios.get(numero, 0)
+        return (time.time() - ultimo) < ventana_segundos
 
     async def trato_cerrado(self, numero: str) -> bool:
         """Retorna True si el trato fue cerrado (etapa avanzada)."""

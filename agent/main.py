@@ -77,6 +77,15 @@ async def receive_message(request: Request):
 
     numero = mensaje["numero"]
     texto = mensaje["texto"]
+
+    # Si el mensaje es del propietario (enviado manualmente desde el WhatsApp)
+    if mensaje.get("es_propietario"):
+        if not memory.fue_envio_del_bot(numero):
+            # Es el propietario escribiendo manualmente — pausar bot para este chat
+            await memory.pausar_bot(numero)
+            logger.info(f"Propietario escribio manualmente a {numero} — bot pausado")
+        return JSONResponse({"status": "owner_message"})
+
     logger.info(f"Mensaje de {numero}: {texto[:80]}")
 
     # Si el bot está pausado, solo reactivar si dice "hola"
@@ -141,6 +150,9 @@ async def receive_message(request: Request):
     # Guardar en memoria
     await memory.save_message(numero, "user", texto)
     await memory.save_message(numero, "assistant", respuesta)
+
+    # Registrar que el bot va a enviar mensaje (para distinguirlo del propietario)
+    memory.registrar_envio_bot(numero)
 
     # Enviar respuesta por WhatsApp
     await provider.enviar_mensaje(numero, respuesta)
