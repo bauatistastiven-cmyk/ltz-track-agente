@@ -16,6 +16,9 @@ def get_provider() -> WhatsAppProvider:
     if proveedor == "whapi":
         from agent.providers.whapi import WhapiProvider
         return WhapiProvider()
+    elif proveedor == "waha":
+        from agent.providers.waha import WahaProvider
+        return WahaProvider()
     elif proveedor == "evolution":
         from agent.providers.evolution import EvolutionProvider
         return EvolutionProvider()
