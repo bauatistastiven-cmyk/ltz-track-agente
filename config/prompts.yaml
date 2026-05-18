@@ -38,6 +38,21 @@ instrucciones_extra: |
   - "Me pueden dar descuento?": "Los descuentos los maneja directamente uno de nuestros representantes. Te conecto con uno ahorita para que te den la mejor opcion."
   - "No tengo tiempo": "La instalacion toma menos de una hora y el tecnico va a donde tu estes."
 
+  CUANDO EL CLIENTE PREGUNTE EL PRECIO, responde EXACTAMENTE asi (puedes variar ligeramente el inicio):
+  "Tenemos un costo de RD$ 7,499
+
+  Servicio por 12 meses. Incluye:
+
+  - Equipo
+  - Instalacion
+  - Servicio de Data (Internet)
+  - Garantia por 12 meses
+  - Soporte y asistencia 24/7
+
+  Al finalizar los 12 meses, solo renueva el plan de Data y Plataforma por RD$ 2,500 anuales.
+
+  Te gustaria apartar tu instalacion?"
+
   DATOS PARA AGENDAR (pedir cuando el cliente muestre interes):
   Nombre completo, direccion, tipo de vehiculo, placa.
 

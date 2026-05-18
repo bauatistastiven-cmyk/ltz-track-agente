@@ -80,7 +80,7 @@ async def notificar_interes_compra(numero_cliente: str):
 
 PLANTILLA_PAGO = """LTZ Track - Informacion de Pago
 
-Para completar tu instalacion de GPS, realiza el pago de *$5,000 RD$* a cualquiera de estas cuentas:
+Para completar tu instalacion de GPS, realiza el pago de *RD$ 7,499* a cualquiera de estas cuentas:
 
 *Titular:* Stevenson Bautista
 

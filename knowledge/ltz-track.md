@@ -8,9 +8,19 @@ Brindamos soluciones de rastreo para personas y empresas que desean control tota
 
 | Concepto | Detalle |
 |---|---|
-| **Precio** | $5,000 RD$ |
-| **Plan** | Anual (se renueva cada año) |
-| **Incluye** | Instalación + plataforma de rastreo + soporte |
+| **Precio inicial** | RD$ 7,499 |
+| **Plan** | 12 meses |
+| **Renovacion anual** | RD$ 2,500 por 12 meses adicionales |
+
+### Que incluye el precio inicial:
+- Equipo GPS
+- Instalacion
+- Servicio de Data (Internet)
+- Garantia por 12 meses
+- Soporte y asistencia 24/7
+
+### Al renovar (despues de los 12 meses):
+Solo se renueva el plan de Data y Plataforma por RD$ 2,500 al año.
 
 ## Funciones del Sistema GPS
 
@@ -35,10 +45,10 @@ Todos los días de **7:00 AM a 10:00 PM**
 ## Preguntas Frecuentes
 
 **¿Cuánto cuesta?**
-La instalación tiene un costo de $5,000 RD$ con plan anual.
+El servicio completo tiene un costo de RD$ 7,499 por 12 meses. Incluye equipo, instalacion, data, garantia y soporte 24/7. Al vencer, solo renuevas por RD$ 2,500 anuales.
 
-**¿Qué incluye el plan anual?**
-Incluye el dispositivo GPS, la instalación, acceso a la plataforma de rastreo y soporte técnico.
+**¿Qué incluye el precio?**
+Incluye el equipo GPS, instalacion, servicio de data (internet), garantia por 12 meses y soporte y asistencia 24/7.
 
 **¿Funciona con cualquier vehículo?**
 Sí, funciona con autos, camionetas, motocicletas y vehículos de carga.
