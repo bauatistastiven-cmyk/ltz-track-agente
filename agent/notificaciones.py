@@ -1,5 +1,5 @@
 """
-agent/notificaciones.py — Notificaciones WhatsApp al administrador via WAHA
+agent/notificaciones.py — Notificaciones WhatsApp al administrador via Green API
 """
 import os
 import logging
@@ -7,28 +7,24 @@ import httpx
 
 logger = logging.getLogger("agentkit.notificaciones")
 
-WAHA_API_URL = os.getenv("WAHA_API_URL", "").rstrip("/")
-WAHA_API_KEY = os.getenv("WAHA_API_KEY", "")
-WAHA_SESSION = os.getenv("WAHA_SESSION", "default")
+GREENAPI_INSTANCE_ID = os.getenv("GREENAPI_INSTANCE_ID", "")
+GREENAPI_API_TOKEN = os.getenv("GREENAPI_API_TOKEN", "")
+GREENAPI_API_URL = os.getenv("GREENAPI_API_URL", "https://api.green-api.com").rstrip("/")
 ADMIN_NUMERO = os.getenv("ADMIN_WHATSAPP", "")
 
 
 async def _enviar_al_admin(mensaje: str):
-    if not ADMIN_NUMERO or not WAHA_API_URL:
-        logger.warning("ADMIN_WHATSAPP o WAHA_API_URL no configurado")
+    if not ADMIN_NUMERO or not GREENAPI_INSTANCE_ID or not GREENAPI_API_TOKEN:
+        logger.warning("ADMIN_WHATSAPP, GREENAPI_INSTANCE_ID o GREENAPI_API_TOKEN no configurado")
         return
-    url = f"{WAHA_API_URL}/api/sendText"
-    headers = {"Content-Type": "application/json"}
-    if WAHA_API_KEY:
-        headers["X-Api-Key"] = WAHA_API_KEY
+    url = f"{GREENAPI_API_URL}/waInstance{GREENAPI_INSTANCE_ID}/sendMessage/{GREENAPI_API_TOKEN}"
     payload = {
         "chatId": f"{ADMIN_NUMERO}@c.us",
-        "text": mensaje,
-        "session": WAHA_SESSION,
+        "message": mensaje,
     }
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
+            resp = await client.post(url, json=payload)
             resp.raise_for_status()
     except Exception as e:
         logger.error(f"Error enviando notificacion al admin: {e}")
@@ -96,21 +92,17 @@ Gracias por confiar en LTZ Track."""
 
 
 async def enviar_plantilla_pago(numero_cliente: str):
-    if not WAHA_API_URL:
-        logger.warning("WAHA_API_URL no configurado")
+    if not GREENAPI_INSTANCE_ID or not GREENAPI_API_TOKEN:
+        logger.warning("GREENAPI_INSTANCE_ID o GREENAPI_API_TOKEN no configurado")
         return
-    url = f"{WAHA_API_URL}/api/sendText"
-    headers = {"Content-Type": "application/json"}
-    if WAHA_API_KEY:
-        headers["X-Api-Key"] = WAHA_API_KEY
+    url = f"{GREENAPI_API_URL}/waInstance{GREENAPI_INSTANCE_ID}/sendMessage/{GREENAPI_API_TOKEN}"
     payload = {
         "chatId": f"{numero_cliente}@c.us",
-        "text": PLANTILLA_PAGO,
-        "session": WAHA_SESSION,
+        "message": PLANTILLA_PAGO,
     }
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
+            resp = await client.post(url, json=payload)
             resp.raise_for_status()
             logger.info(f"Plantilla de pago enviada al cliente {numero_cliente}")
     except Exception as e:

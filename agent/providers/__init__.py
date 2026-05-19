@@ -9,9 +9,9 @@ from agent.providers.base import WhatsAppProvider
 def get_provider() -> WhatsAppProvider:
     """
     Devuelve el proveedor configurado en WHATSAPP_PROVIDER.
-    Valores válidos: 'whapi' | 'meta' | 'twilio'
+    Valores válidos: 'whapi' | 'waha' | 'greenapi' | 'evolution' | 'meta' | 'twilio'
     """
-    proveedor = os.getenv("WHATSAPP_PROVIDER", "whapi").lower().strip()
+    proveedor = os.getenv("WHATSAPP_PROVIDER", "greenapi").lower().strip()
 
     if proveedor == "whapi":
         from agent.providers.whapi import WhapiProvider
@@ -19,6 +19,9 @@ def get_provider() -> WhatsAppProvider:
     elif proveedor == "waha":
         from agent.providers.waha import WahaProvider
         return WahaProvider()
+    elif proveedor == "greenapi":
+        from agent.providers.greenapi import GreenApiProvider
+        return GreenApiProvider()
     elif proveedor == "evolution":
         from agent.providers.evolution import EvolutionProvider
         return EvolutionProvider()
@@ -31,5 +34,5 @@ def get_provider() -> WhatsAppProvider:
     else:
         raise ValueError(
             f"Proveedor desconocido: '{proveedor}'. "
-            f"Opciones válidas: 'whapi', 'evolution', 'meta', 'twilio'"
+            f"Opciones válidas: 'whapi', 'waha', 'greenapi', 'evolution', 'meta', 'twilio'"
         )
