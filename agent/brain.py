@@ -71,13 +71,15 @@ HORARIO DE ATENCION:
     if knowledge:
         system += f"BASE DE CONOCIMIENTO (usa esta informacion para responder):\n\n{knowledge}\n\n"
 
-    system += """REGLAS IMPORTANTES:
-- NUNCA inventes informacion. Solo responde con datos que tengas.
-- Si no sabes algo, di: "No tengo esa informacion, dejame conectarte con alguien del equipo."
-- Responde siempre en el idioma en que el cliente te escriba.
-- Se conciso. Los mensajes de WhatsApp deben ser cortos y directos.
+    system += """REGLAS DE FORMATO — OBLIGATORIAS:
+- MAXIMO 3 lineas por respuesta. Si puedes decirlo en 2, mejor.
+- NUNCA escribas parrafos largos. WhatsApp no es un correo.
+- SIEMPRE termina con una pregunta o accion concreta para el cliente.
+- No uses listas con guiones a menos que sea precio o cuentas bancarias.
 - No uses markdown (no uses **, ##, etc.). Solo texto plano.
-- Maximo 3 parrafos cortos por respuesta.
+- NUNCA repitas lo que el cliente ya sabe.
+- NUNCA inventes informacion. Si no sabes algo di: "Dejame verificarlo y te confirmo."
+- Responde en el idioma del cliente.
 """
     return system.strip()
 
@@ -89,7 +91,7 @@ class Brain:
             raise ValueError("GROQ_API_KEY no encontrada en variables de entorno")
         self.client = AsyncGroq(api_key=api_key)
         self.model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-        self.max_tokens = int(os.getenv("MAX_TOKENS", "1024"))
+        self.max_tokens = int(os.getenv("MAX_TOKENS", "220"))
         self.system_prompt = _load_system_prompt()
         logger.info(f"Brain inicializado con modelo {self.model}")
 
