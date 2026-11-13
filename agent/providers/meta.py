@@ -84,6 +84,35 @@ class MetaProvider(WhatsAppProvider):
         except (IndexError, KeyError, TypeError):
             return None
 
+    async def enviar_plantilla(self, numero: str, nombre_plantilla: str, parametros: list[str]) -> bool:
+        """
+        Envía una plantilla aprobada por Meta (obligatorio para escribirle primero a un cliente).
+        Los parametros reemplazan {{1}}, {{2}}... del cuerpo de la plantilla.
+        Idioma configurable con META_TEMPLATE_LANG (por defecto 'es').
+        """
+        url = f"{META_BASE_URL}/{self.phone_number_id}/messages"
+        template: dict = {
+            "name": nombre_plantilla,
+            "language": {"code": os.getenv("META_TEMPLATE_LANG", "es")},
+        }
+        n_params = int(os.getenv("META_TEMPLATE_PARAMS", str(len(parametros))))
+        if n_params > 0:
+            template["components"] = [{
+                "type": "body",
+                "parameters": [{"type": "text", "text": p or "-"} for p in parametros[:n_params]],
+            }]
+        payload = {"messaging_product": "whatsapp", "to": numero, "type": "template", "template": template}
+        try:
+            resp = await self._client.post(url, json=payload)
+            resp.raise_for_status()
+            return True
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Error Meta plantilla: {e.response.status_code} — {e.response.text}")
+            return False
+        except Exception as e:
+            logger.error(f"Error enviando plantilla por Meta: {e}")
+            return False
+
     async def enviar_mensaje(self, numero: str, texto: str) -> bool:
         url = f"{META_BASE_URL}/{self.phone_number_id}/messages"
         payload = {

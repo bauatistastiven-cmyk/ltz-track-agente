@@ -1,0 +1,65 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "esmeralda-original",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8701",
+        "--directory",
+        "C:/Users/stive/Documents/esmeralda-bay-v2/original"
+      ],
+      "port": 8701
+    },
+    {
+      "name": "esmeralda-v2",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8702",
+        "--directory",
+        "C:/Users/stive/Documents/esmeralda-bay-v2/site"
+      ],
+      "port": 8702
+    },
+    {
+      "name": "esmeralda-app",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8703",
+        "--directory",
+        "C:/Users/stive/Documents/esmeralda-bay-v2/app"
+      ],
+      "port": 8703
+    },
+    {
+      "name": "torre-azul",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8704",
+        "--directory",
+        "C:/Users/stive/Documents/torre-azul/app"
+      ],
+      "port": 8704
+    },
+    {
+      "name": "esmeralda-optimizado",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8705",
+        "--directory",
+        "C:/Users/stive/Documents/esmeralda-bay-optimizado/app"
+      ],
+      "port": 8705
+    }
+  ]
+}

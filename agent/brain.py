@@ -93,7 +93,15 @@ class Brain:
         self.model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
         self.max_tokens = int(os.getenv("MAX_TOKENS", "220"))
         self.system_prompt = _load_system_prompt()
+        # Los modelos gpt-oss "piensan" antes de responder y ese razonamiento gasta tokens:
+        # se les baja el razonamiento y se les da margen para que la respuesta no salga vacía.
+        self._es_razonador = self.model.startswith("openai/gpt-oss")
         logger.info(f"Brain inicializado con modelo {self.model}")
+
+    def _args(self, max_tokens: int) -> dict:
+        if self._es_razonador:
+            return {"max_tokens": max(max_tokens, 800), "reasoning_effort": "low"}
+        return {"max_tokens": max_tokens}
 
     def _prompt_soporte(self) -> str:
         """System prompt para clientes que ya compraron — modo soporte."""
@@ -128,7 +136,55 @@ COMPORTAMIENTO EN MODO RETOMA:
 - Meta: cerrar en esta conversacion, no dejar para despues.
 """
 
-    async def responder(self, mensaje: str, historial: list[dict], modo: str = "ventas") -> str:
+    async def mensaje_inicial(self, contacto: dict, instrucciones: str = "") -> str:
+        """Primer mensaje de campaña: nosotros le escribimos al cliente."""
+        datos = "\n".join(
+            f"{k}: {contacto[k]}" for k in ("nombre", "vehiculo", "notas") if contacto.get(k)
+        ) or "No tenemos datos del cliente, solo su numero."
+        system = self.system_prompt + f"""
+
+MODO ACTUAL: PRIMER CONTACTO (TU ESCRIBES PRIMERO)
+Este cliente NO te ha escrito. Le vas a enviar el primer mensaje por WhatsApp.
+
+DATOS DEL CLIENTE:
+{datos}
+
+INSTRUCCIONES DE ESTA CAMPAÑA:
+{instrucciones or "Presentate, menciona en una frase el beneficio principal del GPS de LTZ Track y pregunta si le interesa saber mas."}
+
+REGLAS DEL PRIMER MENSAJE:
+- Maximo 3 lineas. Saluda por su nombre si lo tienes (solo el primer nombre).
+- Di quien eres y de donde (LTZ Track).
+- Si conoces su vehiculo, mencionalo de forma natural.
+- Despierta curiosidad con UN beneficio concreto. No pongas el precio todavia.
+- Termina con una pregunta facil de responder (si/no).
+- Al final, en una linea aparte: "Si no te interesa, responde NO y no te escribimos mas."
+- Escribe SOLO el mensaje, sin comillas ni explicaciones.
+"""
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": "Escribe el primer mensaje para este cliente."},
+                ],
+                **self._args(self.max_tokens),
+            )
+            texto = (response.choices[0].message.content or "").strip().strip('"')
+            if not texto:
+                raise ValueError("el modelo devolvio un mensaje vacio")
+            return texto
+        except Exception as e:
+            logger.error(f"Error generando mensaje inicial: {e}")
+            nombre = (contacto.get("nombre") or "").split(" ")[0]
+            return (
+                f"Hola{' ' + nombre if nombre else ''}, te saluda LTZ Track. "
+                "Instalamos GPS para que sepas donde esta tu vehiculo en todo momento desde tu celular. "
+                "¿Te gustaria que te cuente como funciona?\n"
+                "Si no te interesa, responde NO y no te escribimos mas."
+            )
+
+    async def responder(self, mensaje: str, historial: list[dict], modo: str = "ventas", contexto: str = "") -> str:
         try:
             if modo == "soporte":
                 system = self._prompt_soporte()
@@ -136,6 +192,8 @@ COMPORTAMIENTO EN MODO RETOMA:
                 system = self._prompt_ventas_retoma()
             else:
                 system = self.system_prompt
+            if contexto:
+                system += "\n\n" + contexto
 
             messages = [{"role": "system", "content": system}]
             for msg in historial:
@@ -145,9 +203,12 @@ COMPORTAMIENTO EN MODO RETOMA:
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                max_tokens=self.max_tokens,
+                **self._args(self.max_tokens),
             )
-            return response.choices[0].message.content
+            texto = (response.choices[0].message.content or "").strip()
+            if not texto:
+                raise ValueError("el modelo devolvio una respuesta vacia")
+            return texto
 
         except Exception as e:
             logger.error(f"Error en Brain: {e}")
@@ -186,7 +247,7 @@ Etapa:"""
             response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=20,
+                **self._args(20),
             )
             etapa = response.choices[0].message.content.strip()
             # Validar que sea una etapa válida

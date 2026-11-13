@@ -10,6 +10,8 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from agent.brain import Brain
 from agent.memory import Memory
 from agent.providers import get_provider
+from agent import crm as crm_mod
+from agent.crm import CRM, es_pedido_de_baja
 from agent.notificaciones import notificar_cambio_etapa, notificar_descuento, notificar_interes_compra, enviar_plantilla_pago, notificar_pase_a_humano
 
 logging.basicConfig(
@@ -21,19 +23,25 @@ logger = logging.getLogger("agentkit")
 memory: Memory = None
 brain: Brain = None
 provider = None
+crm: CRM = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global memory, brain, provider
+    global memory, brain, provider, crm
     logger.info("Iniciando AgentKit...")
     memory = Memory()
     await memory.init()
     brain = Brain()
     provider = get_provider()
     logger.info(f"Proveedor activo: {provider.__class__.__name__}")
+    crm = CRM(memory, brain, provider)
+    await crm.init()
+    crm_mod.configurar(crm)
+    crm.iniciar_envios()
     yield
     logger.info("Apagando AgentKit...")
+    await crm.detener_envios()
     await memory.close()
 
 
@@ -43,6 +51,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+app.include_router(crm_mod.router)
 
 
 @app.get("/")
@@ -88,6 +97,23 @@ async def receive_message(request: Request):
 
     logger.info(f"Mensaje de {numero}: {texto[:80]}")
 
+    # CRM: datos del cliente y respuesta a campañas
+    contacto = await crm.obtener_contacto(numero)
+    if contacto and contacto.get("no_contactar"):
+        await memory.save_message(numero, "user", texto)
+        logger.info(f"{numero} esta marcado como no contactar — mensaje guardado, sin respuesta")
+        return JSONResponse({"status": "no_contactar"})
+    if contacto and contacto.get("estado_envio") == "enviado":
+        if es_pedido_de_baja(texto):
+            await crm.marcar_no_contactar(numero)
+            await memory.save_message(numero, "user", texto)
+            despedida = "Entendido, no te volveremos a escribir. Disculpa la molestia y que tengas buen dia."
+            memory.registrar_envio_bot(numero)
+            await provider.enviar_mensaje(numero, despedida)
+            await memory.save_message(numero, "assistant", despedida)
+            return JSONResponse({"status": "opt_out"})
+        await crm.marcar_respondio(numero)
+
     # Si el bot está pausado, solo reactivar si dice "hola"
     if await memory.bot_esta_pausado(numero):
         if "hola" in texto.lower():
@@ -119,7 +145,7 @@ async def receive_message(request: Request):
         modo = "ventas"
 
     # Generar respuesta
-    respuesta = await brain.responder(texto, historial, modo=modo)
+    respuesta = await brain.responder(texto, historial, modo=modo, contexto=crm.contexto_para_agente(contacto))
 
     # Notificar al admin si pidió descuento
     if pide_descuento:

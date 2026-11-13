@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestor de Clientes WhatsApp</title>
+<style>
+  :root {
+    --primary: #0f766e;
+    --accent: #2dd4bf;
+    --success: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --bg: #f8fafc;
+    --surface: #fff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --text: #f1f5f9;
+      --muted: #cbd5e1;
+      --border: #334155;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font: 15px/1.5 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+  header {
+    background: linear-gradient(135deg, var(--primary) 0%, #0d6b61 100%);
+    color: white; padding: 24px 20px; display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,.1); position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header .stat { font-size: 13px; opacity: 0.9; }
+  nav { display: flex; gap: 8px; }
+  nav button {
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: white;
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font: inherit; transition: all .2s;
+  }
+  nav button:hover { background: rgba(255,255,255,.25); }
+  nav button.on { background: var(--accent); color: var(--primary); font-weight: 600; }
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px; }
+  .metric { background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+  .metric .value { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--primary); }
+  .metric .label { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  h2 { font-size: 18px; margin: 28px 0 16px; display: flex; gap: 8px; align-items: center; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 8px 0 4px; font-weight: 500; }
+  input, textarea, select { font: inherit; width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--bg); color: var(--text); transition: border .2s; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45, 212, 191, .1); }
+  textarea { resize: vertical; min-height: 80px; }
+  .btn { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); cursor: pointer; transition: all .2s; font-weight: 500; }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn.primary:hover { background: #0d5d5a; }
+  .btn.success { background: var(--success); color: white; border-color: var(--success); }
+  .btn.danger { background: var(--danger); color: white; border-color: var(--danger); }
+  .btn.sm { padding: 6px 12px; font-size: 13px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .tag { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+  .tag.new { background: #dbeafe; color: #0369a1; }
+  .tag.respuesta { background: #d1fae5; color: #047857; }
+  .tag.pago { background: #fef3c7; color: #b45309; }
+  .tag.baja { background: #fee2e2; color: #991b1b; }
+  .table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border); }
+  th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  tr:hover td { background: var(--bg); }
+  tr.click { cursor: pointer; }
+  .progress { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+  .progress > div { height: 100%; background: var(--success); }
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; }
+  .modal.show { display: flex; }
+  .modal-content { background: var(--surface); border-radius: 12px; width: min(600px, 95vw); max-height: 85vh; overflow-y: auto;
+    box-shadow: 0 20px 25px rgba(0,0,0,.15); }
+  .modal-head { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 12px; }
+  .modal-body { padding: 20px; }
+  .modal-foot { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--primary); color: white; padding: 12px 18px;
+    border-radius: 8px; font-size: 14px; animation: slideIn .3s ease-out; z-index: 1000; }
+  @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--primary);
+    border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .hidden { display: none !important; }
+  @media (max-width: 640px) { header { flex-wrap: wrap; } .grid { grid-template-columns: 1fr; } th { font-size: 11px; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>📱 Gestor de Clientes</h1>
+    <div class="stat" id="header-info">Cargando...</div>
+  </div>
+  <nav>
+    <button data-tab="inicio" class="on">Inicio</button>
+    <button data-tab="clientes">Clientes</button>
+    <button data-tab="campanas">Campañas</button>
+  </nav>
+</header>
+
+<main>
+  <!-- INICIO -->
+  <section id="tab-inicio">
+    <div class="grid" id="metricas"></div>
+    <h2>🚀 Comenzar</h2>
+    <div class="card">
+      <div class="row" style="gap: 20px; align-items: stretch;">
+        <div style="flex: 1; min-width: 280px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px;">Subir lista de clientes</h3>
+          <label for="f-nombre">Nombre de la campaña</label>
+          <input id="f-nombre" placeholder="Ej: Feria noviembre" style="margin-bottom: 12px;">
+          <label for="f-archivo">Archivo CSV</label>
+          <input id="f-archivo" type="file" accept=".csv" style="margin-bottom: 12px;">
+          <p style="font-size: 12px; color: var(--muted); margin: 12px 0;">
+            📋 Columas: <b>numero</b> (obligatoria), nombre, vehiculo, notas.
+            <a href="/crm/api/ejemplo.csv" style="color: var(--accent);">Descargar ejemplo</a>
+          </p>
+          <label for="f-instr">Instrucciones para el agente (opcional)</label>
+          <textarea id="f-instr" placeholder="Ej: Ofréceles instalación gratis esta semana."></textarea>
+          <button class="btn primary" onclick="importarLista()" style="width: 100%; margin-top: 12px;">
+            <span id="btn-import-text">Importar lista</span>
+          </button>
+        </div>
+        <div style="width: 1px; background: var(--border);"></div>
+        <div style="flex: 1; min-width: 260px;">
+          <h3 style="font-size: 16px; margin-bottom: 12px;">Ultimas campañas</h3>
+          <div id="ult-campanas" style="max-height: 280px; overflow-y: auto;">
+            <p style="color: var(--muted); text-align: center; padding: 40px 20px;">Sin campañas todavía</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLIENTES -->
+  <section id="tab-clientes" class="hidden">
+    <div class="card">
+      <div class="row" style="margin-bottom: 16px;">
+        <input id="q" placeholder="🔍 Buscar por nombre, número, vehículo..." style="flex: 1;">
+        <select id="f-etapa" style="flex: 0 0 180px;">
+          <option value="">Todas las etapas</option>
+        </select>
+        <select id="f-estado" style="flex: 0 0 180px;">
+          <option value="">Todos los estados</option>
+          <option value="respondio">Respondió</option>
+          <option value="sin_respuesta">Sin respuesta</option>
+          <option value="no_contactar">No contactar</option>
+        </select>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Etapa</th>
+              <th>Último mensaje</th>
+              <th style="width: 60px;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-clientes">
+            <tr><td colspan="4" style="text-align: center; padding: 40px;">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size: 12px; color: var(--muted); margin-top: 12px;" id="conteo"></p>
+    </div>
+  </section>
+
+  <!-- CAMPAÑAS -->
+  <section id="tab-campanas" class="hidden">
+    <div id="lista-campanas"></div>
+  </section>
+</main>
+
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-head">
+      <div>
+        <div id="modal-titulo" style="font-weight: 600;"></div>
+        <div id="modal-sub" style="font-size: 13px; color: var(--muted); margin-top: 4px;"></div>
+      </div>
+      <button class="btn sm" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<script>
+const ETAPAS = ["Nuevo contacto", "En cotización", "Pago pendiente", "Instalación agendada", "Cliente activo"];
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+let stats = {}, campanas = [];
+
+function esc(t) { const d = document.createElement("div"); d.textContent = t ?? ""; return d.innerHTML; }
+function toast(m, tipo = "ok") { const t = document.createElement("div");
+  t.className = "toast"; t.textContent = m; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000); }
+function fmt(n) { return n && n.length === 11 && n[0] === "1" ? `(${n.slice(1,4)}) ${n.slice(4,7)}-${n.slice(7)}` : n; }
+function fmtFecha(f) { if (!f) return "—"; const d = new Date(f.includes("T") ? f : f.replace(" ", "T") + "Z");
+  return isNaN(d) ? f : d.toLocaleString("es-DO", {day:"numeric", month:"short", hour:"numeric", minute:"2-digit"}); }
+async function api(url, opts = {}) {
+  const r = await fetch(url, opts);
+  if (!r.ok) { let m = r.statusText; try { m = (await r.json()).detail || m; } catch {} throw new Error(m); }
+  return r.json();
+}
+
+// Tabs
+$$("nav button").forEach(b => b.onclick = () => {
+  $$("nav button").forEach(x => x.classList.toggle("on", x === b));
+  $$("main > section").forEach(x => x.classList.toggle("hidden", x.id !== `tab-${b.dataset.tab}`));
+  if (b.dataset.tab === "clientes") cargarClientes();
+});
+
+ETAPAS.forEach(e => $("#f-etapa").insertAdjacentHTML("beforeend", `<option>${e}</option>`));
+
+async function cargarResumen() {
+  const r = await api("/crm/api/resumen");
+  stats = r; campanas = r.campanas;
+  const total = Object.values(r.etapas).reduce((a,b)=>a+b, 0);
+  const pct = r.envios.respondio ? Math.round(100 * r.envios.respondio / (r.envios.enviado || 1)) : 0;
+  $("#header-info").innerHTML = `${total} clientes · ${r.envios.respondio || 0} respondieron (${pct}%) · ${r.envios_hoy}/${r.limite_diario} hoy`;
+  const metricas = [
+    [total, "Clientes total", "📊"],
+    [r.envios.respondio || 0, "Respondieron", "💬"],
+    [r.etapas["Pago pendiente"] || 0, "Pago pendiente", "💳"],
+    [r.etapas["Cliente activo"] || 0 + (r.etapas["Instalación agendada"] || 0), "Instalados", "✅"],
+  ];
+  $("#metricas").innerHTML = metricas.map(([n, l, i]) => `<div class="metric">
+    <div style="font-size: 24px; margin-bottom: 8px;">${i}</div>
+    <div class="value">${n}</div>
+    <div class="label">${l}</div>
+  </div>`).join("");
+  const ult = r.campanas.slice(0, 3);
+  $("#ult-campanas").innerHTML = ult.length ? ult.map(c => `<div style="padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;">
+    <div style="font-weight: 500;">${esc(c.nombre)}</div>
+    <div style="color: var(--muted); margin-top: 2px;">${c.total} clientes · ${c.respondieron} respondieron</div>
+  </div>`).join("") : `<p style="color:var(--muted); text-align:center; padding:40px 20px;">Sin campañas</p>`;
+  actualizarListaCampanas();
+}
+
+function actualizarListaCampanas() {
+  if (!campanas.length) { $("#lista-campanas").innerHTML = `<div class="empty"><div class="empty-icon">📭</div>Sin campañas aún</div>`; return; }
+  $("#lista-campanas").innerHTML = campanas.map(c => {
+    const pct = c.total ? Math.round(100 * (c.respondieron || 0) / c.total) : 0;
+    const btn = c.estado === "activa"
+      ? `<button class="btn sm" onclick="estadoCampana(${c.id}, 'pausada')">Pausar</button>`
+      : c.pendientes ? `<button class="btn sm primary" onclick="estadoCampana(${c.id}, 'activa')">Iniciar</button>` : "";
+    return `<div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: start; gap: 12px;">
+        <div style="flex: 1;">
+          <div style="font-weight: 600; margin-bottom: 8px;">${esc(c.nombre)} <span class="tag ${c.estado}">${c.estado}</span></div>
+          <div style="font-size: 13px; color: var(--muted); line-height: 1.6;">
+            ${c.total} clientes · ${c.pendientes} por enviar · <span style="color: var(--success); font-weight: 500;">${c.respondieron} respondieron (${pct}%)</span>
+            ${c.bajas ? ` · ${c.bajas} pidieron no contactar` : ""}
+          </div>
+          <div class="progress"><div style="width: ${pct}%"></div></div>
+        </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+          <button class="btn sm" onclick="verClientesCampana(${c.id})">Ver</button>
+          ${btn}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function estadoCampana(id, estado) {
+  if (estado === "activa" && !confirm("¿Iniciar campaña? El agente comenzará a escribir poco a poco.")) return;
+  try {
+    await api(`/crm/api/campanas/${id}/estado`, { method: "POST", body: new FormData(Object.entries({ estado }).reduce((f, [k,v]) => (f.set(k, v), f), new FormData())) });
+    toast(estado === "activa" ? "✓ Campaña iniciada" : "✓ Campaña pausada");
+    await cargarResumen();
+  } catch (e) { toast("Error: " + e.message, "error"); }
+}
+
+function verClientesCampana(id) { $("#f-estado").value = ""; cargarClientes(id); $$("nav button")[1].click(); }
+
+async function importarLista() {
+  const archivo = $("#f-archivo").files[0];
+  if (!archivo) { toast("Selecciona un archivo", "error"); return; }
+  const nombre = $("#f-nombre").value.trim() || "Campaña";
+  const instr = $("#f-instr").value.trim();
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = "Importando...";
+  try {
+    const f = new FormData();
+    f.append("archivo", archivo);
+    f.append("nombre_campana", nombre);
+    f.append("instrucciones", instr);
+    const r = await api("/crm/api/importar", { method: "POST", body: f });
+    toast(`✓ ${r.agregados} clientes importados`);
+    if (r.invalidos + r.duplicados + r.bloqueados > 0) {
+      const msg = [r.invalidos && `${r.invalidos} inválidos`, r.duplicados && `${r.duplicados} repetidos`, r.bloqueados && `${r.bloqueados} no contactar`].filter(Boolean).join(", ");
+      alert(`Se agregaron ${r.agregados} clientes.\nOmitidos: ${msg}.`);
+    }
+    $("#f-nombre").value = ""; $("#f-archivo").value = ""; $("#f-instr").value = "";
+    await cargarResumen();
+  } catch (e) { toast("Error: " + e.message, "error"); }
+  btn.disabled = false; btn.textContent = "Importar lista";
+}
+
+let filtro_campana = null;
+let t;
+["#q", "#f-etapa", "#f-estado"].forEach(s => $(s).addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => cargarClientes(filtro_campana), 250); }));
+
+async function cargarClientes(campana_id = null) {
+  const p = new URLSearchParams({ q: $("#q").value, etapa: $("#f-etapa").value, estado: $("#f-estado").value });
+  if (campana_id) p.set("campana", campana_id);
+  const lista = await api("/crm/api/contactos?" + p);
+  const nombres = Object.fromEntries(campanas.map(c => [c.id, c.nombre]));
+  $("#tabla-clientes").innerHTML = lista.map(c => `
+    <tr class="click" onclick="abrirCliente('${c.numero}')">
+      <td><b>${esc(c.nombre) || fmt(c.numero)}</b><br><span style="font-size:12px; color:var(--muted);">${c.nombre ? fmt(c.numero) : ""} ${esc(c.vehiculo || "")}</span></td>
+      <td><span style="font-size:13px">${esc(c.etapa)}</span></td>
+      <td style="font-size:13px; color:var(--muted);">${fmtFecha(c.ultimo_mensaje_at)}</td>
+      <td><button class="btn sm" onclick="event.stopPropagation(); abrirCliente('${c.numero}')">Ver</button></td>
+    </tr>`).join("") || `<tr><td colspan="4" style="text-align:center; color:var(--muted);">No hay clientes</td></tr>`;
+  $("#conteo").textContent = `${lista.length} cliente${lista.length !== 1 ? 's' : ''}` + (filtro_campana ? ` · Campaña: ${esc(nombres[filtro_campana] || "")}` : "");
+}
+
+async function abrirCliente(numero) {
+  const r = await api(`/crm/api/conversacion/${numero}`);
+  const c = r.contacto || {};
+  $("#modal-titulo").textContent = c.nombre || fmt(numero);
+  $("#modal-sub").textContent = [fmt(numero), c.vehiculo, c.etapa].filter(Boolean).join(" · ");
+  const msgs = r.mensajes.map(m => `<div style="margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: ${m.role === "user" ? "var(--bg)" : "var(--accent); color: var(--primary)"};">
+    ${esc(m.content)}<br><span style="font-size: 11px; opacity: 0.7; margin-top: 4px; display: block;">${fmtFecha(m.at)}</span>
+  </div>`).join("") || `<p style="text-align: center; color: var(--muted); padding: 20px;">Sin mensajes aún</p>`;
+  $("#modal-body").innerHTML = (c.notas ? `<div style="background: var(--primary); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px;">📝 ${esc(c.notas)}</div>` : "") + msgs;
+  const acciones = [
+    `<a class="btn btn-sm" href="https://wa.me/${numero}" target="_blank" rel="noopener">💬 WhatsApp</a>`,
+    c.bot_pausado
+      ? `<button class="btn sm" onclick="accion('${numero}', 'reactivar')">▶ Reactivar bot</button>`
+      : `<button class="btn sm" onclick="accion('${numero}', 'pausar')">⏸ Control manual</button>`,
+    !c.no_contactar ? `<button class="btn sm danger" onclick="if(confirm('¿Confirmar?')) accion('${numero}', 'no_contactar')">✕ No contactar</button>` : "",
+  ];
+  $("#modal-foot").innerHTML = acciones.join("");
+  $("#modal").classList.add("show");
+}
+
+async function accion(numero, accion) {
+  try {
+    await api(`/crm/api/contactos/${numero}/accion`, { method: "POST", body: new FormData(Object.entries({ accion }).reduce((f, [k,v]) => (f.set(k, v), f), new FormData())) });
+    toast("✓ Actualizado");
+    await abrirCliente(numero);
+    await cargarClientes(filtro_campana);
+  } catch (e) { toast("Error: " + e.message, "error"); }
+}
+
+function cerrarModal() { $("#modal").classList.remove("show"); }
+$("#modal").onclick = e => { if (e.target === $("#modal")) cerrarModal(); };
+
+cargarResumen().catch(e => toast("Error al cargar: " + e.message, "error"));
+setInterval(() => { if (!document.hidden) cargarResumen().catch(() => {}); }, 30000);
+</script>
+</body>
+</html>
