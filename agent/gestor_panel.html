@@ -105,6 +105,7 @@
     <button data-tab="inicio" class="on">Inicio</button>
     <button data-tab="clientes">Clientes</button>
     <button data-tab="campanas">Campañas</button>
+    <button data-tab="whatsapp">WhatsApp</button>
   </nav>
 </header>
 
@@ -180,6 +181,43 @@
   <section id="tab-campanas" class="hidden">
     <div id="lista-campanas"></div>
   </section>
+
+  <!-- WHATSAPP -->
+  <section id="tab-whatsapp" class="hidden">
+    <div class="card">
+      <h2>📱 Estado de WhatsApp</h2>
+      <div id="wa-status" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div style="padding: 20px; background: var(--bg); border-radius: 10px; border-left: 4px solid var(--success);">
+          <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">PROVEEDOR</div>
+          <div id="wa-proveedor" style="font-weight: 600; font-size: 16px;">—</div>
+        </div>
+        <div style="padding: 20px; background: var(--bg); border-radius: 10px; border-left: 4px solid var(--success);">
+          <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">ESTADO</div>
+          <div id="wa-estado" style="font-weight: 600; font-size: 16px;">🟢 Conectado</div>
+        </div>
+        <div style="padding: 20px; background: var(--bg); border-radius: 10px; border-left: 4px solid var(--primary);">
+          <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">NÚMERO</div>
+          <div id="wa-numero" style="font-weight: 600; font-size: 14px; word-break: break-all;">—</div>
+        </div>
+        <div style="padding: 20px; background: var(--bg); border-radius: 10px; border-left: 4px solid var(--accent);">
+          <div style="font-size: 12px; color: var(--muted); margin-bottom: 4px;">HORARIO</div>
+          <div id="wa-horario" style="font-weight: 600; font-size: 14px;">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔗 Configuración</h2>
+      <div style="background: var(--bg); padding: 16px; border-radius: 10px; font-size: 13px; color: var(--muted); line-height: 1.7;">
+        <p><b>Proveedor actual:</b> <code id="cfg-proveedor">—</code></p>
+        <p><b>Variables de entorno requeridas:</b></p>
+        <ul style="margin: 8px 0 0 20px;">
+          <li id="cfg-vars"></li>
+        </ul>
+        <p style="margin-top: 12px; color: var(--primary);"><b>💡 Tip:</b> Para cambiar de proveedor (Meta/Green API/Whapi), actualiza <code>WHATSAPP_PROVIDER</code> en las variables de entorno de Railway.</p>
+      </div>
+    </div>
+  </section>
 </main>
 
 <div id="modal" class="modal">
@@ -224,9 +262,29 @@ $$("nav button").forEach(b => b.onclick = () => {
 
 ETAPAS.forEach(e => $("#f-etapa").insertAdjacentHTML("beforeend", `<option>${e}</option>`));
 
+async function cargarWhatsApp() {
+  try {
+    const r = await api("/crm/api/whatsapp/estado");
+    $("#wa-proveedor").textContent = r.proveedor;
+    $("#wa-estado").textContent = r.conectado ? "🟢 Conectado" : "🔴 Desconectado";
+    $("#wa-numero").textContent = r.numero;
+    $("#wa-horario").textContent = r.horario;
+
+    const vars = {
+      "Meta": ["META_ACCESS_TOKEN", "META_PHONE_NUMBER_ID", "META_VERIFY_TOKEN"],
+      "Green API": ["GREENAPI_INSTANCE_ID", "GREENAPI_API_TOKEN"],
+      "Whapi": ["WHAPI_TOKEN"],
+    };
+    const v = vars[r.proveedor] || [];
+    $("#cfg-proveedor").textContent = r.proveedor;
+    $("#cfg-vars").innerHTML = v.map(x => `<code>${x}</code>`).join(", ");
+  } catch (e) { console.log("Error cargando WhatsApp:", e); }
+}
+
 async function cargarResumen() {
   const r = await api("/crm/api/resumen");
   stats = r; campanas = r.campanas;
+  await cargarWhatsApp();
   const total = Object.values(r.etapas).reduce((a,b)=>a+b, 0);
   const pct = r.envios.respondio ? Math.round(100 * r.envios.respondio / (r.envios.enviado || 1)) : 0;
   $("#header-info").innerHTML = `${total} clientes · ${r.envios.respondio || 0} respondieron (${pct}%) · ${r.envios_hoy}/${r.limite_diario} hoy`;
@@ -334,12 +392,23 @@ async function abrirCliente(numero) {
   const c = r.contacto || {};
   $("#modal-titulo").textContent = c.nombre || fmt(numero);
   $("#modal-sub").textContent = [fmt(numero), c.vehiculo, c.etapa].filter(Boolean).join(" · ");
+
   const msgs = r.mensajes.map(m => `<div style="margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: ${m.role === "user" ? "var(--bg)" : "var(--accent); color: var(--primary)"};">
     ${esc(m.content)}<br><span style="font-size: 11px; opacity: 0.7; margin-top: 4px; display: block;">${fmtFecha(m.at)}</span>
   </div>`).join("") || `<p style="text-align: center; color: var(--muted); padding: 20px;">Sin mensajes aún</p>`;
-  $("#modal-body").innerHTML = (c.notas ? `<div style="background: var(--primary); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px;">📝 ${esc(c.notas)}</div>` : "") + msgs;
+
+  const chat = `${msgs}
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+      <label style="margin-bottom: 8px;">Responder manualmente</label>
+      <div style="display: flex; gap: 8px;">
+        <textarea id="resp-texto" placeholder="Tu mensaje..." style="flex: 1; resize: none; height: 80px;"></textarea>
+        <button class="btn primary" onclick="enviarManual('${numero}')" style="align-self: flex-end;">Enviar</button>
+      </div>
+    </div>`;
+
+  $("#modal-body").innerHTML = (c.notas ? `<div style="background: var(--primary); color: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 13px;">📝 ${esc(c.notas)}</div>` : "") + chat;
+
   const acciones = [
-    `<a class="btn btn-sm" href="https://wa.me/${numero}" target="_blank" rel="noopener">💬 WhatsApp</a>`,
     c.bot_pausado
       ? `<button class="btn sm" onclick="accion('${numero}', 'reactivar')">▶ Reactivar bot</button>`
       : `<button class="btn sm" onclick="accion('${numero}', 'pausar')">⏸ Control manual</button>`,
@@ -347,6 +416,22 @@ async function abrirCliente(numero) {
   ];
   $("#modal-foot").innerHTML = acciones.join("");
   $("#modal").classList.add("show");
+  setTimeout(() => $("#resp-texto")?.focus(), 200);
+}
+
+async function enviarManual(numero) {
+  const texto = $("#resp-texto").value.trim();
+  if (!texto) { toast("Escribe un mensaje", "error"); return; }
+  if (texto.length > 4000) { toast("Mensaje muy largo (máx 4000 caracteres)", "error"); return; }
+  try {
+    const f = new FormData();
+    f.append("numero", numero);
+    f.append("texto", texto);
+    await api("/crm/api/whatsapp/enviar", { method: "POST", body: f });
+    toast("✓ Mensaje enviado");
+    $("#resp-texto").value = "";
+    await abrirCliente(numero);
+  } catch (e) { toast("Error: " + e.message, "error"); }
 }
 
 async function accion(numero, accion) {

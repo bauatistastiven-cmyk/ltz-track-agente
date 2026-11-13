@@ -11,6 +11,7 @@ from agent.brain import Brain
 from agent.memory import Memory
 from agent.providers import get_provider
 from agent import crm as crm_mod
+from agent import crm_whatsapp as wa_mod
 from agent.crm import CRM, es_pedido_de_baja
 from agent.notificaciones import notificar_cambio_etapa, notificar_descuento, notificar_interes_compra, enviar_plantilla_pago, notificar_pase_a_humano
 
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI):
     crm = CRM(memory, brain, provider)
     await crm.init()
     crm_mod.configurar(crm)
+    wa_mod.configurar(crm)
     crm.iniciar_envios()
     yield
     logger.info("Apagando AgentKit...")
@@ -52,6 +54,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(crm_mod.router)
+app.include_router(wa_mod.router)
 
 
 @app.get("/")
